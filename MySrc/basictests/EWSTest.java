@@ -8,8 +8,8 @@ import java.net.Authenticator;
 import java.net.PasswordAuthentication;
 import java.net.URL;
 import java.time.ZonedDateTime;
-import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.regex.Matcher;
 
 import javax.jws.WebMethod;
 import javax.jws.WebParam;
@@ -116,7 +116,7 @@ public class EWSTest {
 		builder.append(requestString);
 		builder.append("</soap:Body>\n");
 		builder.append("</soap:Envelope>\n");
-//		System.out.println(builder.toString());
+		// System.out.println(builder.toString());
 
 		String currentScheme = System.getProperty("http.auth.preference");
 		if (currentScheme != null) {
@@ -164,17 +164,36 @@ public class EWSTest {
 
 	public static void main(String[] args) {
 		EWSTest test = new EWSTest();
-		String result = test.createCalendarItem(
-				"outlook.office365.com",
-				"jtalbert@mechdyne.com",
-				"2Pets4us",
-				"test event",
-				"HQ",
-				new XMLGregorianCalendarImpl(GregorianCalendar
-						.from(ZonedDateTime.now())),
-				new XMLGregorianCalendarImpl(GregorianCalendar
-						.from(ZonedDateTime.now())));
 
-		System.out.println(result);
+		XMLGregorianCalendar cal1 = new XMLGregorianCalendarImpl(
+				GregorianCalendar.from(ZonedDateTime.now()));
+		cal1.setDay(cal1.getDay() + 1);
+		XMLGregorianCalendar cal2 = (XMLGregorianCalendar) cal1.clone();
+		// new XMLGregorianCalendarImpl(GregorianCalendar
+		// .from(ZonedDateTime.now()));
+		cal2.setHour(cal2.getHour() + 1);
+
+		String result = test.createCalendarItem("outlook.office365.com",
+				"jtalbert@mechdyne.com", "2Pets4us", "test event", "HQ", cal1,
+				cal2);
+
+		printXML(result);
+	}
+
+	public static void printXML(String XML) {
+		Matcher m = java.util.regex.Pattern.compile("(<[^>]+>)").matcher(XML);
+		int tabs = -1;
+		while (m.find()) {
+
+			if (m.group().charAt(1) == '/') {
+				tabs--;
+			} else if (m.group().charAt(1) == '?') {
+			} else {
+				tabs++;
+			}
+			for (int i = 0; i < tabs; i++)
+				System.out.print("    ");
+			System.out.println(m.group());
+		}
 	}
 }
