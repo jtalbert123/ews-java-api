@@ -158,7 +158,7 @@ public class AsyncRequestResult implements IAsyncResult {
 
 
   @Override
-  public WaitHandle getAsyncWaitHanle() {
+  public WaitHandle getAsyncWaitHandle() {
     // TODO Auto-generated method stub
     return null;
   }

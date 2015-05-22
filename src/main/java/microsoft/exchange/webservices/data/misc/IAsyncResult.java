@@ -35,7 +35,7 @@ public interface IAsyncResult extends Future<Object> {
 
   public Object getAsyncState();
 
-  public WaitHandle getAsyncWaitHanle();
+  public WaitHandle getAsyncWaitHandle();
 
   public boolean getCompleteSynchronously();
 

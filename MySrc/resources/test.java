@@ -1,8 +1,8 @@
-package basictests;
+package resources;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Set;
+import java.util.List;
 
 import microsoft.exchange.webservices.data.core.ExchangeService;
 import microsoft.exchange.webservices.data.core.exception.service.local.ServiceLocalException;
@@ -12,6 +12,7 @@ import microsoft.exchange.webservices.data.core.service.item.Item;
 import microsoft.exchange.webservices.data.core.service.schema.ItemSchema;
 import microsoft.exchange.webservices.data.credential.ExchangeCredentials;
 import microsoft.exchange.webservices.data.credential.WebCredentials;
+import microsoft.exchange.webservices.data.enumeration.DeleteMode;
 import microsoft.exchange.webservices.data.enumeration.ExchangeVersion;
 import microsoft.exchange.webservices.data.enumeration.SortDirection;
 import microsoft.exchange.webservices.data.enumeration.WellKnownFolderName;
@@ -19,7 +20,6 @@ import microsoft.exchange.webservices.data.property.complex.EmailAddress;
 import microsoft.exchange.webservices.data.property.complex.MessageBody;
 import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.ItemView;
-import microsoft.exchange.webservices.data.enumeration.DeleteMode;
 
 public class test {
 
@@ -44,11 +44,21 @@ public class test {
 
 	private static void doStuff(ExchangeService service) throws Exception {
 		EmailMessageCreator factory = new EmailMessageCreator(service, true);
-		EmailMessage email = sendEmail(service, factory);
+		factory.deleteClassMessages(
+				Folder.bind(service, WellKnownFolderName.Root),
+				DeleteMode.HardDelete);
+		EmailMessage email = sendEmail(service, factory, 1);
 
 		System.out.println(EmailMessageUtils.printMessage(email));
 
-		factory.close();
+		factory = new EmailMessageCreator(service, true);
+		email = sendEmail(service, factory, 2);
+
+		System.out.println(EmailMessageUtils.printMessage(email));
+
+		factory.deleteMessage(Folder.bind(service, WellKnownFolderName.Root),
+				DeleteMode.HardDelete, email);
+		;
 	}
 
 	public static FindItemsResults<Item> listFirstNMessages(
@@ -71,23 +81,16 @@ public class test {
 	 * @throws Exception
 	 * @throws ServiceLocalException
 	 */
-	private static EmailMessage sendEmail(ExchangeService service,
-			EmailMessageCreator factory) throws Exception,
+	static EmailMessage sendEmail(ExchangeService service,
+			EmailMessageCreator factory, int version) throws Exception,
 			ServiceLocalException {
 		EmailMessage message = factory.newEmail();
-
 		message.setSender(new EmailAddress("James Talbert",
 				"james.talbert@mechdyne.com"));
-
-		message.setSubject("EWS message");
-
-		message.setBody(new MessageBody(
-				"Alan, please reply to this message letting me know that you recieved it.<br>\tThanks!"));
-
-		 message.getToRecipients().add(
-		 new EmailAddress("James Talbert", "jtalbert123@gmail.com"));
-		message.getToRecipients().add(
-				new EmailAddress("James.talbert@mechdyne.com"));
+		message.setSubject("EWS message " + version);
+		message.setBody(new MessageBody("version " + version));
+		message.getToRecipients()
+				.add(new EmailAddress("jtalbert123@gmail.com"));
 
 		// Specify when to send the email by setting the value of the extended
 		// property.
@@ -96,7 +99,7 @@ public class test {
 
 		assert message.getId() == null;
 
-		Set<EmailMessage> set = factory.getMessageInstances(
+		List<EmailMessage> set = factory.getMessageInstances(
 				Folder.bind(service, WellKnownFolderName.SentItems), message);
 
 		EmailMessage result = null;
@@ -107,27 +110,8 @@ public class test {
 		return result;
 	}
 
-	private static EmailMessage getLastSent(ExchangeService service)
-			throws Exception {
-		Folder folder = Folder.bind(service, WellKnownFolderName.Inbox);
-		ItemView view = new ItemView(1);
-		view.getOrderBy()
-				.add(ItemSchema.DateTimeSent, SortDirection.Descending);
-		FindItemsResults<Item> findResults = service.findItems(folder.getId(),
-				view);
-
-		EmailMessage message = EmailMessage.bind(service, findResults
-				.getItems().get(0).getId());
-
-		System.out.println(message.getSubject());
-		System.out.println(message.getDateTimeSent());
-		// System.out.println(message.getId());
-		return message;
-	}
-
-	private static EmailMessage getLastDeleted(ExchangeService service)
-			throws Exception {
-		Folder folder = Folder.bind(service, WellKnownFolderName.DeletedItems);
+	private static EmailMessage getMostRecent(ExchangeService service,
+			Folder folder) throws Exception {
 		ItemView view = new ItemView(1);
 		view.getOrderBy()
 				.add(ItemSchema.DateTimeSent, SortDirection.Descending);
@@ -136,7 +120,6 @@ public class test {
 
 		EmailMessage message = (EmailMessage) findResults.getItems().get(0);
 
-		System.out.println(message.getSubject());
 		return message;
 	}
 }

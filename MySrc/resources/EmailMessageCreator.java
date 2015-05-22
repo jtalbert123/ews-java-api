@@ -1,28 +1,21 @@
-package basictests;
+package resources;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 import microsoft.exchange.webservices.data.core.ExchangeService;
 import microsoft.exchange.webservices.data.core.service.folder.Folder;
 import microsoft.exchange.webservices.data.core.service.item.EmailMessage;
 import microsoft.exchange.webservices.data.core.service.item.Item;
-import microsoft.exchange.webservices.data.core.service.schema.FolderSchema;
-import microsoft.exchange.webservices.data.core.service.schema.ItemSchema;
 import microsoft.exchange.webservices.data.enumeration.DeleteMode;
 import microsoft.exchange.webservices.data.enumeration.LogicalOperator;
 import microsoft.exchange.webservices.data.enumeration.MapiPropertyType;
-import microsoft.exchange.webservices.data.enumeration.SortDirection;
 import microsoft.exchange.webservices.data.enumeration.WellKnownFolderName;
 import microsoft.exchange.webservices.data.property.definition.ExtendedPropertyDefinition;
-import microsoft.exchange.webservices.data.search.FindFoldersResults;
-import microsoft.exchange.webservices.data.search.FindItemsResults;
-import microsoft.exchange.webservices.data.search.FolderView;
-import microsoft.exchange.webservices.data.search.ItemView;
 import microsoft.exchange.webservices.data.search.filter.SearchFilter;
 import microsoft.exchange.webservices.data.search.filter.SearchFilter.SearchFilterCollection;
 
@@ -85,7 +78,7 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		this.autoDelete = autoDelete;
 	}
 
-	EmailMessage newEmail() throws Exception {
+	public EmailMessage newEmail() throws Exception {
 		EmailMessage message = new EmailMessage(service);
 
 		int messageID = getNewMessageId();
@@ -174,8 +167,13 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 	 * @return
 	 * @throws Exception
 	 */
-	public Set<EmailMessage> getClassMessages(Folder folder) throws Exception {
-		return getClassMessages(folder, new HashSet<EmailMessage>());
+	public List<EmailMessage> getClassMessages(Folder folder) throws Exception {
+		List<Item> itemList = getClassMessages(folder, new ArrayList<Item>());
+		List<EmailMessage> messageList = new ArrayList<>();
+		for (Item i : itemList)
+			if (i instanceof EmailMessage)
+				messageList.add((EmailMessage) i);
+		return messageList;
 	}
 
 	/**
@@ -187,9 +185,14 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 	 * @return
 	 * @throws Exception
 	 */
-	public Set<EmailMessage> getInstanceMessages(Folder folder)
+	public List<EmailMessage> getInstanceMessages(Folder folder)
 			throws Exception {
-		return getInstanceMessages(folder, new HashSet<EmailMessage>());
+		List<Item> itemList = getInstanceMessages(folder, new ArrayList<Item>());
+		List<EmailMessage> messageList = new ArrayList<>();
+		for (Item i : itemList)
+			if (i instanceof EmailMessage)
+				messageList.add((EmailMessage) i);
+		return messageList;
 	}
 
 	/**
@@ -207,10 +210,15 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 	 *         sub-folders
 	 * @throws Exception
 	 */
-	public Set<EmailMessage> getMessageInstances(Folder folder,
+	public List<EmailMessage> getMessageInstances(Folder folder,
 			EmailMessage originalReturn) throws Exception {
-		return getMessageInstances(folder, getMessageID(originalReturn),
-				new HashSet<EmailMessage>());
+		List<Item> itemList = getMessageInstances(folder,
+				getMessageID(originalReturn), new ArrayList<Item>());
+		List<EmailMessage> messageList = new ArrayList<>();
+		for (Item i : itemList)
+			if (i instanceof EmailMessage)
+				messageList.add((EmailMessage) i);
+		return messageList;
 	}
 
 	/**
@@ -229,26 +237,28 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 	 *         sub-folders
 	 * @throws Exception
 	 */
-	public Set<EmailMessage> getMessageInstances(Folder folder, int messageID)
+	public List<EmailMessage> getMessageInstances(Folder folder, int messageID)
 			throws Exception {
-		return getMessageInstances(folder, messageID,
-				new HashSet<EmailMessage>());
+		List<Item> itemList = getMessageInstances(folder, messageID,
+				new ArrayList<Item>());
+		List<EmailMessage> messageList = new ArrayList<>();
+		for (Item i : itemList)
+			if (i instanceof EmailMessage)
+				messageList.add((EmailMessage) i);
+		return messageList;
 	}
 
-	public Set<EmailMessage> getClassMessages(Folder folder,
-			Set<EmailMessage> set) {
+	public List<Item> getClassMessages(Folder folder, List<Item> list) {
 		SearchFilter classFilter = new SearchFilter.IsEqualTo(classIDProperty,
 				this.getClass().getName());
-		SearchFilterCollection filter = new SearchFilterCollection(
-				LogicalOperator.And, classFilter);
 
-		filteredSearch(folder, set, filter);
+		list = EmailMessageUtils.filteredSearch(service, folder, classFilter,
+				true);
 
-		return set;
+		return list;
 	}
 
-	public Set<EmailMessage> getInstanceMessages(Folder folder,
-			Set<EmailMessage> set) {
+	public List<Item> getInstanceMessages(Folder folder, List<Item> list) {
 
 		SearchFilter classFilter = new SearchFilter.IsEqualTo(classIDProperty,
 				this.getClass().getName());
@@ -257,13 +267,13 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		SearchFilterCollection filters = new SearchFilterCollection(
 				LogicalOperator.And, classFilter, instanceFilter);
 
-		filteredSearch(folder, set, filters);
+		list = EmailMessageUtils.filteredSearch(service, folder, filters, true);
 
-		return set;
+		return list;
 	}
 
-	public Set<EmailMessage> getMessageInstances(Folder folder, int messageID,
-			Set<EmailMessage> set) {
+	public List<Item> getMessageInstances(Folder folder, int messageID,
+			List<Item> list) {
 
 		SearchFilter classFilter = new SearchFilter.IsEqualTo(classIDProperty,
 				this.getClass().getName());
@@ -274,41 +284,8 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		SearchFilterCollection filters = new SearchFilterCollection(
 				LogicalOperator.And, classFilter, instanceFilter, messageFilter);
 
-		filteredSearch(folder, set, filters);
+		list = EmailMessageUtils.filteredSearch(service, folder, filters, true);
 
-		return set;
-	}
-
-	private void filteredSearch(Folder folder, Set<EmailMessage> set,
-			SearchFilterCollection filter) {
-		try {
-			FindItemsResults<Item> findResults = null;
-			do {
-				ItemView view = new ItemView(10);
-				view.getOrderBy().add(ItemSchema.DateTimeSent,
-						SortDirection.Descending);
-
-				findResults = service.findItems(folder.getId(), filter, view);
-
-				for (Item item : findResults.getItems()) {
-					if (item instanceof EmailMessage)
-						set.add((EmailMessage) item);
-				}
-			} while (findResults.isMoreAvailable());
-		} catch (Exception e) {
-		}
-
-		FolderView view = new FolderView(10);
-		SearchFilter searchFilter = new SearchFilter.IsGreaterThan(
-				FolderSchema.TotalCount, 0);
-		try {
-			FindFoldersResults results = service.findFolders(folder.getId(),
-					searchFilter, view);
-			for (Folder sub : results) {
-				getClassMessages(sub, set);
-			}
-
-		} catch (Exception e) {
-		}
+		return list;
 	}
 }
