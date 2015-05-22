@@ -19,6 +19,7 @@ import microsoft.exchange.webservices.data.property.complex.EmailAddress;
 import microsoft.exchange.webservices.data.property.complex.MessageBody;
 import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.ItemView;
+import microsoft.exchange.webservices.data.enumeration.DeleteMode;
 
 public class test {
 
@@ -44,12 +45,9 @@ public class test {
 	private static void doStuff(ExchangeService service) throws Exception {
 		EmailMessageCreator factory = new EmailMessageCreator(service, true);
 		EmailMessage email = sendEmail(service, factory);
-		System.out.println(email.getSubject());
-		System.out.println(email.getBody());
 
-		System.out.println(email.getDateTimeReceived());
-		System.out.println(Folder.bind(service, email.getParentFolderId())
-				.getDisplayName());
+		System.out.println(EmailMessageUtils.printMessage(email));
+
 		factory.close();
 	}
 
@@ -86,9 +84,9 @@ public class test {
 		message.setBody(new MessageBody(
 				"Alan, please reply to this message letting me know that you recieved it.<br>\tThanks!"));
 
-		// message.getToRecipients().add(
-		// new EmailAddress("Alan Talbert", "alan.talbert@emerson.com"));
-		message.getCcRecipients().add(
+		 message.getToRecipients().add(
+		 new EmailAddress("James Talbert", "jtalbert123@gmail.com"));
+		message.getToRecipients().add(
 				new EmailAddress("James.talbert@mechdyne.com"));
 
 		// Specify when to send the email by setting the value of the extended
@@ -98,8 +96,8 @@ public class test {
 
 		assert message.getId() == null;
 
-		Set<EmailMessage> set = factory.getMessage(message,
-				Folder.bind(service, WellKnownFolderName.SentItems));
+		Set<EmailMessage> set = factory.getMessageInstances(
+				Folder.bind(service, WellKnownFolderName.SentItems), message);
 
 		EmailMessage result = null;
 		for (EmailMessage m : set) {
@@ -107,18 +105,6 @@ public class test {
 			// System.out.println(m.getId());
 		}
 		return result;
-	}
-
-	private static FindItemsResults<Item> searchFolder(ExchangeService service,
-			Folder folder) throws ServiceLocalException, Exception {
-		ItemView view = new ItemView(10);
-		view.getOrderBy()
-				.add(ItemSchema.DateTimeSent, SortDirection.Descending);
-
-		FindItemsResults<Item> findResults = service.findItems(folder.getId(),
-				view);
-
-		return findResults;
 	}
 
 	private static EmailMessage getLastSent(ExchangeService service)
