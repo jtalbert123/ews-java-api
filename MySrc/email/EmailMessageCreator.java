@@ -1,4 +1,6 @@
-package resources;
+package email;
+
+import static resources.EWSSetup.ShortCallingService;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -7,7 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
-import microsoft.exchange.webservices.data.core.ExchangeService;
 import microsoft.exchange.webservices.data.core.service.folder.Folder;
 import microsoft.exchange.webservices.data.core.service.item.EmailMessage;
 import microsoft.exchange.webservices.data.core.service.item.Item;
@@ -34,43 +35,45 @@ import microsoft.exchange.webservices.data.search.filter.SearchFilter.SearchFilt
  *
  */
 public class EmailMessageCreator implements Closeable, AutoCloseable {
-	private static ExtendedPropertyDefinition classIDProperty;
+	private static ExtendedPropertyDefinition classIDProperty = init();
 	private static ExtendedPropertyDefinition instanceIDProperty;
 	private static ExtendedPropertyDefinition messageIDProperty;
 
 	private static int ID = (int) (System.currentTimeMillis() % (Integer.MAX_VALUE));
 
-	static void init() throws Exception {
-		instanceIDProperty = new ExtendedPropertyDefinition(
-				UUID.fromString("75A5486F-9267-49ca-9B4E-3D04CA9EC179"),
-				"CreatorID", MapiPropertyType.Integer);
-		messageIDProperty = new ExtendedPropertyDefinition(
-				UUID.fromString("75A5486F-9267-49ca-9B4E-3D04CA9EC180"),
-				"MessageID", MapiPropertyType.Integer);
+	private static ExtendedPropertyDefinition init() {
+		try {
+			instanceIDProperty = new ExtendedPropertyDefinition(
+					UUID.fromString("75A5486F-9267-49ca-9B4E-3D04CA9EC179"),
+					"CreatorID", MapiPropertyType.Integer);
+			messageIDProperty = new ExtendedPropertyDefinition(
+					UUID.fromString("75A5486F-9267-49ca-9B4E-3D04CA9EC180"),
+					"MessageID", MapiPropertyType.Integer);
 
-		classIDProperty = new ExtendedPropertyDefinition(
-				UUID.fromString("75A5486F-9267-49ca-9B4E-3D04CA9EC181"),
-				"CreatedFrom", MapiPropertyType.String);
+			classIDProperty = new ExtendedPropertyDefinition(
+					UUID.fromString("75A5486F-9267-49ca-9B4E-3D04CA9EC181"),
+					"CreatedFrom", MapiPropertyType.String);
+		} catch (Exception e) {
+		}
+
+		return classIDProperty;
 	}
 
 	private final int creatorID;
-	private ExchangeService service;
 	private HashMap<Integer, EmailMessage> createdMessages;
 	private HashMap<EmailMessage, Integer> createdIDs;
 	private int messageID;
 	private boolean autoDelete;
 
-	public EmailMessageCreator(ExchangeService service) throws Exception {
-		this(service, false);
+	public EmailMessageCreator() throws Exception {
+		this(false);
 	}
 
-	public EmailMessageCreator(ExchangeService service, boolean autoDelete)
-			throws Exception {
+	public EmailMessageCreator(boolean autoDelete) throws Exception {
 		if (instanceIDProperty == null) {
 			init();
 		}
 		creatorID = getId();
-		this.service = service;
 
 		createdMessages = new HashMap<>();
 		createdIDs = new HashMap<>();
@@ -79,7 +82,7 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 	}
 
 	public EmailMessage newEmail() throws Exception {
-		EmailMessage message = new EmailMessage(service);
+		EmailMessage message = new EmailMessage(ShortCallingService);
 
 		int messageID = getNewMessageId();
 		message.setExtendedProperty(classIDProperty, this.getClass().getName());
@@ -120,9 +123,8 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 	public void close() throws IOException {
 		if (autoDelete) {
 			try {
-				deleteInstanceMessages(
-						Folder.bind(service, WellKnownFolderName.Root),
-						DeleteMode.HardDelete);
+				deleteInstanceMessages(Folder.bind(ShortCallingService,
+						WellKnownFolderName.Root), DeleteMode.HardDelete);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -252,8 +254,7 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		SearchFilter classFilter = new SearchFilter.IsEqualTo(classIDProperty,
 				this.getClass().getName());
 
-		list = EmailMessageUtils.filteredSearch(service, folder, classFilter,
-				true);
+		list = EmailMessageUtils.filteredSearch(folder, classFilter, true);
 
 		return list;
 	}
@@ -267,7 +268,7 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		SearchFilterCollection filters = new SearchFilterCollection(
 				LogicalOperator.And, classFilter, instanceFilter);
 
-		list = EmailMessageUtils.filteredSearch(service, folder, filters, true);
+		list = EmailMessageUtils.filteredSearch(folder, filters, true);
 
 		return list;
 	}
@@ -284,7 +285,7 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		SearchFilterCollection filters = new SearchFilterCollection(
 				LogicalOperator.And, classFilter, instanceFilter, messageFilter);
 
-		list = EmailMessageUtils.filteredSearch(service, folder, filters, true);
+		list = EmailMessageUtils.filteredSearch(folder, filters, true);
 
 		return list;
 	}

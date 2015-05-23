@@ -1,11 +1,10 @@
-package resources;
+package email;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-import microsoft.exchange.webservices.data.core.ExchangeService;
 import microsoft.exchange.webservices.data.core.PropertySet;
 import microsoft.exchange.webservices.data.core.exception.service.local.ServiceLocalException;
 import microsoft.exchange.webservices.data.core.service.folder.Folder;
@@ -21,6 +20,7 @@ import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.FolderView;
 import microsoft.exchange.webservices.data.search.ItemView;
 import microsoft.exchange.webservices.data.search.filter.SearchFilter;
+import static resources.EWSSetup.*;
 
 public class EmailMessageUtils {
 
@@ -48,10 +48,10 @@ public class EmailMessageUtils {
 		return string.toString();
 	}
 
-	public static List<Item> filteredSearch(ExchangeService service,
-			Folder folder, SearchFilter filter, boolean recursive) {
+	public static List<Item> filteredSearch(Folder folder, SearchFilter filter,
+			boolean recursive) {
 		List<Item> list = new ArrayList<Item>();
-		filteredSearchKernel(service, folder, list, filter, recursive);
+		filteredSearchKernel(folder, list, filter, recursive);
 		Collections.sort(list, new Comparator<Item>() {
 
 			@Override
@@ -79,9 +79,8 @@ public class EmailMessageUtils {
 		return list;
 	}
 
-	private static void filteredSearchKernel(ExchangeService service,
-			Folder folder, List<Item> set, SearchFilter filter,
-			boolean recursive) {
+	private static void filteredSearchKernel(Folder folder, List<Item> set,
+			SearchFilter filter, boolean recursive) {
 
 		try {
 			FindItemsResults<Item> findResults = null;
@@ -92,10 +91,11 @@ public class EmailMessageUtils {
 			view.setPropertySet(toDownload);
 			do {
 				if (filter != null)
-					findResults = service.findItems(folder.getId(), filter,
-							view);
+					findResults = ShortCallingService.findItems(folder.getId(),
+							filter, view);
 				else
-					findResults = service.findItems(folder.getId(), view);
+					findResults = ShortCallingService.findItems(folder.getId(),
+							view);
 
 				for (Item item : findResults.getItems()) {
 					set.add(item);
@@ -111,10 +111,10 @@ public class EmailMessageUtils {
 			FindFoldersResults results;
 			try {
 				do {
-					results = service.findFolders(folder.getId(), searchFilter,
-							view);
+					results = ShortCallingService.findFolders(folder.getId(),
+							searchFilter, view);
 					for (Folder sub : results) {
-						filteredSearchKernel(service, sub, set, filter, true);
+						filteredSearchKernel(sub, set, filter, true);
 					}
 				} while (results.isMoreAvailable());
 
