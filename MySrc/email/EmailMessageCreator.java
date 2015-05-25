@@ -7,8 +7,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import microsoft.exchange.webservices.data.core.PropertySet;
+import microsoft.exchange.webservices.data.core.exception.service.local.ServiceLocalException;
 import microsoft.exchange.webservices.data.core.service.folder.Folder;
 import microsoft.exchange.webservices.data.core.service.item.EmailMessage;
 import microsoft.exchange.webservices.data.core.service.item.Item;
@@ -16,6 +19,8 @@ import microsoft.exchange.webservices.data.enumeration.DeleteMode;
 import microsoft.exchange.webservices.data.enumeration.LogicalOperator;
 import microsoft.exchange.webservices.data.enumeration.MapiPropertyType;
 import microsoft.exchange.webservices.data.enumeration.WellKnownFolderName;
+import microsoft.exchange.webservices.data.property.complex.ExtendedProperty;
+import microsoft.exchange.webservices.data.property.complex.ExtendedPropertyCollection;
 import microsoft.exchange.webservices.data.property.definition.ExtendedPropertyDefinition;
 import microsoft.exchange.webservices.data.search.filter.SearchFilter;
 import microsoft.exchange.webservices.data.search.filter.SearchFilter.SearchFilterCollection;
@@ -81,7 +86,8 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		this.autoDelete = autoDelete;
 	}
 
-	public EmailMessage newEmail() throws Exception {
+	public EmailMessage newEmail(Map<String, Object> properties)
+			throws Exception {
 		EmailMessage message = new EmailMessage(ShortCallingService);
 
 		int messageID = getNewMessageId();
@@ -93,6 +99,10 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		createdIDs.put(message, messageID);
 
 		return message;
+	}
+
+	public EmailMessage newEmail() throws Exception {
+		return newEmail(null);
 	}
 
 	private static int getId() {
@@ -288,5 +298,16 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		list = EmailMessageUtils.filteredSearch(folder, filters, true);
 
 		return list;
+	}
+
+	public boolean wasCreatedByMe(EmailMessage message) throws Exception {
+		message.load(new PropertySet(classIDProperty));
+		ExtendedPropertyCollection properties = message.getExtendedProperties();
+		for (ExtendedProperty property : properties) {
+			if (property.getValue().equals(this.getClass().getName())) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

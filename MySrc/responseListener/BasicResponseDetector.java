@@ -1,12 +1,15 @@
-package subscription;
+package responseListener;
 
 import static resources.EWSSetup.ShortCallingService;
 import static resources.EWSSetup.SubscriptionService;
 
+import java.awt.Event;
 import java.util.ArrayList;
 
+import email.OverageNotifications;
 import microsoft.exchange.webservices.data.core.exception.service.local.ServiceLocalException;
 import microsoft.exchange.webservices.data.core.service.folder.Folder;
+import microsoft.exchange.webservices.data.core.service.item.EmailMessage;
 import microsoft.exchange.webservices.data.core.service.item.Item;
 import microsoft.exchange.webservices.data.enumeration.EventType;
 import microsoft.exchange.webservices.data.enumeration.WellKnownFolderName;
@@ -20,49 +23,27 @@ import microsoft.exchange.webservices.data.notification.StreamingSubscriptionCon
 import microsoft.exchange.webservices.data.notification.SubscriptionErrorEventArgs;
 import microsoft.exchange.webservices.data.property.complex.FolderId;
 import resources.GeneralUtils;
+import subscription.EWSSubscription;
 
-public class EWSSubscription implements INotificationEventDelegate,
+public class BasicResponseDetector implements INotificationEventDelegate,
 		ISubscriptionErrorDelegate {
-
-	public static void main(String[] args) throws Exception {
-		EWSSubscription sub = new EWSSubscription(1, true);
-		sub.connection.addOnNotificationEvent(sub);
-		sub.connection.addOnSubscriptionError(sub);
-		sub.connection.addOnDisconnect(sub);
-		sub.connection.open();
-	}
-
-	private StreamingSubscription subscription;
-
-	public StreamingSubscription getSubscription() {
-		return subscription;
-	}
-
-	public StreamingSubscriptionConnection getConnection() {
-		return connection;
-	}
 
 	private StreamingSubscriptionConnection connection;
 
-	private boolean reopen;
-	private int lifetime;
-
-	public EWSSubscription(int minutes, boolean reopen) throws Exception {
-		this.reopen = reopen;
-		lifetime = minutes;
-		setUpSubscription();
-	}
-
-	private void setUpSubscription() throws Exception {
+	public BasicResponseDetector() throws Exception {
 		ArrayList<FolderId> folders = new ArrayList<>();
 		folders.add(Folder.bind(ShortCallingService, WellKnownFolderName.Inbox)
 				.getId());
-		subscription = SubscriptionService.subscribeToStreamingNotifications(
-				folders, EventType.Created);
+		StreamingSubscription subscription = SubscriptionService
+				.subscribeToStreamingNotifications(folders, EventType.Created);
 		ArrayList<StreamingSubscription> subscriptions = new ArrayList<>();
 		subscriptions.add(subscription);
 		connection = new StreamingSubscriptionConnection(SubscriptionService,
-				subscriptions, lifetime);
+				subscriptions, 1);
+
+		connection.addOnNotificationEvent(this);
+		connection.addOnDisconnect(this);
+		connection.open();
 
 		System.out.println("Ready");
 	}
@@ -70,36 +51,46 @@ public class EWSSubscription implements INotificationEventDelegate,
 	@Override
 	public void notificationEventDelegate(Object sender,
 			NotificationEventArgs args) {
-		try {
-			System.out.println("\nNotification recieved\n");
-			for (NotificationEvent event : args.getEvents()) {
-				if (event instanceof ItemEvent) {
-					ItemEvent e = (ItemEvent) event;
-					Item item = Item.bind(ShortCallingService, e.getItemId());
-					// System.out.println(MessageBody
-					// .getStringFromMessageBody(item.getBody()));
-					System.out.println(GeneralUtils.formatHTML(item.getBody()
-							.toString()));
+		for (NotificationEvent e : args.getEvents()) {
+			if (e instanceof ItemEvent) {
+				ItemEvent event = (ItemEvent) e;
+				try {
+					Item item = Item.bind(ShortCallingService,
+							event.getItemId());
+					if (item instanceof EmailMessage) {
+						EmailMessage message = (EmailMessage) item;
+						System.out.println("New email recieved");
+
+						System.out.println(GeneralUtils.formatHTML(message
+								.getBody().toString()));
+
+						if (message
+								.getBody()
+								.toString()
+								.contains(
+										"<font size=\"0\">Sent by Overage Notifier</font>")) {
+							System.out
+									.println("It's an overage notifiation message");
+							break;
+						}
+					}
+				} catch (Exception e1) {
+					e1.printStackTrace();
 				}
 			}
-			connection.close();
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 	}
 
 	@Override
 	public void subscriptionErrorDelegate(Object sender,
 			SubscriptionErrorEventArgs args) {
-		System.out.println("Disconnected");
-		if (reopen)
-			try {
-				connection.open();
-				System.out.println("Reopened");
-			} catch (ServiceLocalException e) {
-				e.printStackTrace();
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		try {
+			connection.open();
+		} catch (ServiceLocalException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
+
 }
