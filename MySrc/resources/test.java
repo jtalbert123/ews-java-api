@@ -2,12 +2,10 @@ package resources;
 
 import static resources.EWSSetup.ShortCallingService;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import responseListener.BasicResponseDetector;
 import microsoft.exchange.webservices.data.core.ExchangeService;
 import microsoft.exchange.webservices.data.core.exception.service.local.ServiceLocalException;
 import microsoft.exchange.webservices.data.core.service.folder.Folder;
@@ -16,22 +14,26 @@ import microsoft.exchange.webservices.data.core.service.item.Item;
 import microsoft.exchange.webservices.data.core.service.schema.ItemSchema;
 import microsoft.exchange.webservices.data.enumeration.SortDirection;
 import microsoft.exchange.webservices.data.enumeration.WellKnownFolderName;
+import microsoft.exchange.webservices.data.misc.NameResolution;
+import microsoft.exchange.webservices.data.misc.NameResolutionCollection;
 import microsoft.exchange.webservices.data.property.complex.EmailAddress;
 import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.ItemView;
+import responseListener.BasicResponseDetector;
 import email.EmailMessageCreator;
 import email.OverageNotifications;
 
 public class test {
 
 	public static void main(String[] args) throws Exception {
-		Collection<EmailAddress> members = ShortCallingService.expandGroup(
-				"Overage_Notifier@mechdyne.com").getMembers();
-		for (EmailAddress addr : members) {
-			System.out.println(addr);
+		NameResolutionCollection collection = ShortCallingService
+				.resolveName("Gruening");
+
+		for (NameResolution name : collection) {
+			System.out.println(name.getMailbox());
 		}
 
-		doStuff();
+//		doStuff();
 
 	}
 

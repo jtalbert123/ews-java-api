@@ -25,8 +25,8 @@ public class OverageNotifications extends EmailMessageCreator {
 		defaults.put("user.dataUsed", 0.0);
 		defaults.put("user.dataPlan", 0.5);
 		defaults.put("user.dataOverage", 0.0);
-		defaults.put("user.overageCharge", 0);
-		defaults.put("user.planCharge", 0);
+		defaults.put("user.overageCharge", 0.0);
+		defaults.put("user.planCharge", 0.0);
 
 		return defaults;
 	}
@@ -98,44 +98,36 @@ public class OverageNotifications extends EmailMessageCreator {
 		overageCharge = properties.get("user.overageCharge");
 		planCharge = properties.get("user.planCharge");
 
-		//@FormatterOff
+		// @FormatterOff
 
 		String html = String
-				  .format("Hello %s,<br>"
+				.format("Hello %s,<br>"
 						+ "<br>"
 						+ "This billing period you have used %.2f GB of data on your company phone. "
 						+ "You have selected a data plan with %.2f GB of data, resulting in a %.2f overage. "
-						+ "You will be charged $%d for the overage in addition to the $%d for the data plan. "
+						+ "You will be charged $%.2f for the overage in addition to the $%.2f for the data plan. "
 						+ "Where would you like the overage charge deducted from?<br>"
 						+ "Options:"
 						+ "<ul>"
-							+ "<li>Expense claim</li>"
-							+ "<li>Payroll</li>"
+						+ "<li>Expense claim</li>"
+						+ "<li>Payroll</li>"
 						+ "</ul>"
 						+ "Please respond to this message with the sentence "
 						+ "\"Deduct from <i>location</i>.\" (with or without quotes) "
 						+ "Where <i>location</i> is the item from the preceding list (case insensitive). "
 						+ "If the sentence is not found, your response will be ignored.",
-						name, dataUsed, dataPlan, dataOverage, overageCharge,
-						planCharge);
-String text = "<html>"
+						name, (Double) dataUsed, (Double) dataPlan,
+						(Double) dataOverage, (Double) overageCharge,
+						(Double) planCharge);
+		String text = "<html>"
 				+ "<head>"
-					+ "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"
-				+ "</head>"
-				+ "<body style=\"padding-bottom:40px\">"
-					+ "<div>"
-						+ "<p dir=\"auto\" style=\"margin-top:0;margin-bottom:0;\">"
-							+html
-						+ "</p>"
-						+ "<br>"
-						+ "<br>"
-						+ "<br>"
-						+ "<br>"
-						+ "<font size=\"1\">Sent by Overage Notifier</font>"
-					+ "</div>"
-				+ "</body>"
-			+ "</html>";
-//		@FormatterOn
+				+ "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"
+				+ "</head>" + "<body style=\"padding-bottom:40px\">" + "<div>"
+				+ "<p dir=\"auto\" style=\"margin-top:0;margin-bottom:0;\">"
+				+ html + "</p>" + "<br>" + "<br>" + "<br>" + "<br>"
+				+ "<font size=\"1\">Sent by Overage Notifier</font>" + "</div>"
+				+ "</body>" + "</html>";
+		// @FormatterOn
 		MessageBody body = new MessageBody(text);
 		// body.setText(text);
 		return body;
