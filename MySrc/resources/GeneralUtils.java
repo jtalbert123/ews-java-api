@@ -59,4 +59,15 @@ public class GeneralUtils {
 	// System.out.println(formatHTML("<p>\n" + "    afdbsdgb\n" + "   <br>\n"
 	// + "</p>\n"));
 	// }
+
+	public static String nameCase(String name) {
+		String[] parts = name.split(" ");
+		name = "";
+		for (String part : parts) {
+			name += Character.toUpperCase(part.charAt(0))
+					+ part.substring(1).toLowerCase();
+			name += " ";
+		}
+		return name.trim();
+	}
 }

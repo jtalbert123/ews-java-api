@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
+import resources.GeneralUtils;
 import microsoft.exchange.webservices.data.misc.NameResolution;
 import microsoft.exchange.webservices.data.misc.NameResolutionCollection;
 
@@ -25,56 +26,55 @@ public class ReadDB {
 				.executeQuery("SELECT * FROM internal_data;");
 		while (results.next()) {
 			try {
-				String name = nameCase(results.getString("name"));
-				NameResolutionCollection addresses = ShortCallingService
-						.resolveName(name);
-				NameResolution resolved = null;
-				try {
-					System.out.println(name);
-					resolved = addresses.iterator().next();
-				} catch (NoSuchElementException e) {
-					try {
-						String lastName = name.substring(name.indexOf(' '))
-								.trim();
-						System.out.println(lastName);
-						addresses = ShortCallingService.resolveName(lastName);
-						resolved = addresses.iterator().next();
-					} catch (NoSuchElementException e2) {
-						String firstName = name.substring(0, name.indexOf(' '))
-								.trim();
-						System.out.println(firstName);
-						addresses = ShortCallingService.resolveName(firstName);
-						resolved = addresses.iterator().next();
-					}
-				}
+				String name = GeneralUtils.nameCase(results.getString("name"));
 
 				Map<String, Object> map = new HashMap<>();
-				map.put("user.name", name.substring(0, name.indexOf(' ')));
-				map.put("user.address", resolved.getMailbox());
-				map.put("user.dataUsed", results.getDouble("data_used"));
-				map.put("user.dataPlan", results.getDouble("data_allocated"));
-				map.put("user.dataOverage", results.getDouble("data_overage"));
-				map.put("user.overageCharge",
-						results.getDouble("overage_charge"));
-				map.put("user.planCharge",
-						results.getDouble("data_allocated") * 10);
 
-				set.add(map);
+				map.put("user.dataOverage", results.getDouble("data_overage"));
+
+				if (((Double) map.get("user.dataOverage")) > 0) {
+					map.put("user.name", name.substring(0, name.indexOf(' ')));
+					map.put("user.number", results.getLong("number"));
+					map.put("user.dataUsed", results.getDouble("data_used"));
+					map.put("user.dataPlan",
+							Math.max(results.getDouble("data_allocated"), .5));
+					map.put("user.overageCharge",
+							results.getDouble("overage_charge"));
+					map.put("user.planCharge",
+							(results.getDouble("data_allocated") - .5) * 10);
+					map.put("user.otherPersonalCharges",
+							results.getDouble("other_personal_charges"));
+
+					NameResolutionCollection addresses = ShortCallingService
+							.resolveName(name);
+					NameResolution resolved = null;
+					try {
+						resolved = addresses.iterator().next();
+					} catch (NoSuchElementException e) {
+						try {
+							String lastName = name.substring(name.indexOf(' '))
+									.trim();
+							addresses = ShortCallingService
+									.resolveName(lastName);
+							resolved = addresses.iterator().next();
+						} catch (NoSuchElementException e2) {
+							String firstName = name.substring(0,
+									name.indexOf(' ')).trim();
+							addresses = ShortCallingService
+									.resolveName(firstName);
+							resolved = addresses.iterator().next();
+						}
+					}
+					map.put("user.address", resolved.getMailbox());
+
+					set.add(map);
+
+					System.out.println(resolved.getMailbox());
+				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
 		return set;
-	}
-
-	private static String nameCase(String name) {
-		String[] parts = name.split(" ");
-		name = "";
-		for (String part : parts) {
-			name += Character.toUpperCase(part.charAt(0))
-					+ part.substring(1).toLowerCase();
-			name += " ";
-		}
-		return name.trim();
 	}
 }

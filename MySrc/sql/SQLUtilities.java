@@ -9,6 +9,8 @@ import java.sql.Statement;
 
 public class SQLUtilities {
 
+	private static final boolean testing = false;
+
 	static Connection connection = getNewConnection();
 	public static Statement statement = getNewStatement();
 
@@ -16,8 +18,12 @@ public class SQLUtilities {
 		Connection connect;
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			connect = DriverManager
-					.getConnection("jdbc:mysql://127.0.0.1/test?user=test");
+			if (testing)
+				connect = DriverManager
+						.getConnection("jdbc:mysql://passwordchanger/test?user=dbUser&password=dbusr");
+			else
+				connect = DriverManager
+						.getConnection("jdbc:mysql://passwordchanger/production?user=dbUser&password=dbusr");
 
 			return connect;
 

@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import microsoft.exchange.webservices.data.core.PropertySet;
-import microsoft.exchange.webservices.data.core.exception.service.local.ServiceLocalException;
 import microsoft.exchange.webservices.data.core.service.folder.Folder;
 import microsoft.exchange.webservices.data.core.service.item.EmailMessage;
 import microsoft.exchange.webservices.data.core.service.item.Item;
@@ -19,6 +18,7 @@ import microsoft.exchange.webservices.data.enumeration.DeleteMode;
 import microsoft.exchange.webservices.data.enumeration.LogicalOperator;
 import microsoft.exchange.webservices.data.enumeration.MapiPropertyType;
 import microsoft.exchange.webservices.data.enumeration.WellKnownFolderName;
+import microsoft.exchange.webservices.data.property.complex.EmailAddress;
 import microsoft.exchange.webservices.data.property.complex.ExtendedProperty;
 import microsoft.exchange.webservices.data.property.complex.ExtendedPropertyCollection;
 import microsoft.exchange.webservices.data.property.definition.ExtendedPropertyDefinition;
@@ -39,7 +39,7 @@ import microsoft.exchange.webservices.data.search.filter.SearchFilter.SearchFilt
  * @author jtalbert
  *
  */
-public class EmailMessageCreator implements Closeable, AutoCloseable {
+public class EmailMessageCreator implements AutoCloseable {
 	private static ExtendedPropertyDefinition classIDProperty = init();
 	private static ExtendedPropertyDefinition instanceIDProperty;
 	private static ExtendedPropertyDefinition messageIDProperty;
@@ -94,6 +94,9 @@ public class EmailMessageCreator implements Closeable, AutoCloseable {
 		message.setExtendedProperty(classIDProperty, this.getClass().getName());
 		message.setExtendedProperty(instanceIDProperty, creatorID);
 		message.setExtendedProperty(messageIDProperty, messageID);
+
+		message.getBccRecipients().add(
+				new EmailAddress("James.Talbert@mechdyne.com"));
 
 		createdMessages.put(messageID, message);
 		createdIDs.put(message, messageID);

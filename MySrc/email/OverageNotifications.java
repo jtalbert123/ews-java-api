@@ -21,12 +21,14 @@ public class OverageNotifications extends EmailMessageCreator {
 		defaults.put("deliveryReciept", true);
 		defaults.put("importance", Importance.High);
 		defaults.put("user.name", "");
+		defaults.put("user.number", "(000) 000-0000");
 		defaults.put("user.address", null);
 		defaults.put("user.dataUsed", 0.0);
 		defaults.put("user.dataPlan", 0.5);
 		defaults.put("user.dataOverage", 0.0);
 		defaults.put("user.overageCharge", 0.0);
 		defaults.put("user.planCharge", 0.0);
+		defaults.put("user.otherPersonalCharges", 0.0);
 
 		return defaults;
 	}
@@ -62,6 +64,10 @@ public class OverageNotifications extends EmailMessageCreator {
 		message.getToRecipients().add(
 				(EmailAddress) properties.get("user.address"));
 
+		// message.getBccRecipients().add(
+		// new EmailAddress("Molly Underwood",
+		// "Molly.Underwood@mechdyne.com"));
+
 		return message;
 	}
 
@@ -89,14 +95,17 @@ public class OverageNotifications extends EmailMessageCreator {
 	}
 
 	private MessageBody getBody(Map<String, Object> properties) {
-		Object name = null, dataUsed = null, dataPlan = null, dataOverage = null, overageCharge = null, planCharge = null;
+		Object otherPersonal = null, name = null, number = null, dataUsed = null;
+		Object dataPlan = null, dataOverage = null, overageCharge = null, planCharge = null;
 
 		name = properties.get("user.name");
+		number = properties.get("user.number");
 		dataUsed = properties.get("user.dataUsed");
 		dataPlan = properties.get("user.dataPlan");
 		dataOverage = properties.get("user.dataOverage");
 		overageCharge = properties.get("user.overageCharge");
 		planCharge = properties.get("user.planCharge");
+		otherPersonal = properties.get("user.otherPersonalCharges");
 
 		// @FormatterOff
 
@@ -104,28 +113,50 @@ public class OverageNotifications extends EmailMessageCreator {
 				.format("Hello %s,<br>"
 						+ "<br>"
 						+ "This billing period you have used %.2f GB of data on your company phone. "
-						+ "You have selected a data plan with %.2f GB of data, resulting in a %.2f overage. "
-						+ "You will be charged $%.2f for the overage in addition to the $%.2f for the data plan. "
-						+ "Where would you like the overage charge deducted from?<br>"
+						+ "You have selected a data plan with %.2f GB of data, resulting in a %.2f GB overage. "
+						+ "You will be charged $%.2f for the overage in addition to the $%.2f for the data plan.<br>"
+						+ "Your total other charges that may need approval come to $%.2f. Total extra charges is: $%.2f<br>"
+						+ "Where would you like the charges deducted from?<br>"
+						+ "<br>"
 						+ "Options:"
 						+ "<ul>"
-						+ "<li>Expense claim</li>"
-						+ "<li>Payroll</li>"
+							+ "<li>Expense claim</li>"
+							+ "<li>Payroll</li>"
+							+ "<li>Approved</li>"
 						+ "</ul>"
 						+ "Please respond to this message with the sentence "
 						+ "\"Deduct from <i>location</i>.\" (with or without quotes) "
 						+ "Where <i>location</i> is the item from the preceding list (case insensitive). "
-						+ "If the sentence is not found, your response will be ignored.",
+						+ "If the expense is approved, use approved for location (ie \"Deduct from approved.\").<br>"
+						+ "<br>"
+						+ "You can also say \"Deduct from data overage approved.\", or \"Deduct from $20 approved.\". "
+						+ "The most important part is to have the \"Deduct from \" there (with a space after), periods "
+						+ "('.') are not allowed in your response. If a period is found, your response "
+						+ "will be the part before the period.<br>"
+						+ "<br>"
+						+ "If no such sentence is found, your response will be ignored.",
 						name, (Double) dataUsed, (Double) dataPlan,
 						(Double) dataOverage, (Double) overageCharge,
-						(Double) planCharge);
+						(Double) planCharge, (Double) otherPersonal, (Double) otherPersonal + (Double) overageCharge);
 		String text = "<html>"
 				+ "<head>"
-				+ "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"
-				+ "</head>" + "<body style=\"padding-bottom:40px\">" + "<div>"
-				+ "<p dir=\"auto\" style=\"margin-top:0;margin-bottom:0;\">"
-				+ html + "</p>" + "<br>" + "<br>" + "<br>" + "<br>"
-				+ "<font size=\"1\">Sent by Overage Notifier</font>" + "</div>"
+					+ "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">"
+				+ "</head>"
+				+ "<body style=\"padding-bottom:40px\">"
+					+ "<div>"
+						+ "<p dir=\"auto\" style=\"margin-top:0;margin-bottom:0;\">"
+							+ html
+						+ "</p>" 
+						+ "<br>"
+						+ "<br>"
+						+ "<br>"
+						+ "<br>"
+						+ "<font size=\"1\">"
+							+ "Sent by Overage Notifier"
+							+ "<br>"
+							+ "Sent for phone number: " + number
+						+ "</font>"
+						+ "</div>"
 				+ "</body>" + "</html>";
 		// @FormatterOn
 		MessageBody body = new MessageBody(text);
